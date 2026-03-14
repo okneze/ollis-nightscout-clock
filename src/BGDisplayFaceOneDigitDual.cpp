@@ -2,6 +2,7 @@
 
 #include "BGDisplayManager.h"
 #include "BGSourceManager.h"
+#include "OneDigitArrows.h"
 #include "globals.h"
 
 namespace {
@@ -18,49 +19,6 @@ uint16_t getRoundedBgColorDual(int roundedSgv) {
         return COLOR_YELLOW;
     }
     return COLOR_RED;
-}
-
-void drawOnePixelTrendArrowDual(int x, BG_TREND trend, bool dataIsOld) {
-    const uint16_t color = dataIsOld ? BG_COLOR_OLD : COLOR_WHITE;
-
-    switch (trend) {
-        case BG_TREND::DOUBLE_UP:
-            DisplayManager.drawPixel(x, 0, color, false);
-            DisplayManager.drawPixel(x, 1, color, false);
-            DisplayManager.drawPixel(x, 2, color, false);
-            DisplayManager.drawPixel(x, 3, color, false);
-            break;
-        case BG_TREND::SINGLE_UP:
-            DisplayManager.drawPixel(x, 1, color, false);
-            DisplayManager.drawPixel(x, 2, color, false);
-            DisplayManager.drawPixel(x, 3, color, false);
-            break;
-        case BG_TREND::FORTY_FIVE_UP:
-            DisplayManager.drawPixel(x, 2, color, false);
-            DisplayManager.drawPixel(x, 3, color, false);
-            break;
-        case BG_TREND::FLAT:
-            DisplayManager.drawPixel(x, 3, color, false);
-            DisplayManager.drawPixel(x, 4, color, false);
-            break;
-        case BG_TREND::FORTY_FIVE_DOWN:
-            DisplayManager.drawPixel(x, 4, color, false);
-            DisplayManager.drawPixel(x, 5, color, false);
-            break;
-        case BG_TREND::SINGLE_DOWN:
-            DisplayManager.drawPixel(x, 4, color, false);
-            DisplayManager.drawPixel(x, 5, color, false);
-            DisplayManager.drawPixel(x, 6, color, false);
-            break;
-        case BG_TREND::DOUBLE_DOWN:
-            DisplayManager.drawPixel(x, 4, color, false);
-            DisplayManager.drawPixel(x, 5, color, false);
-            DisplayManager.drawPixel(x, 6, color, false);
-            DisplayManager.drawPixel(x, 7, color, false);
-            break;
-        default:
-            break;
-    }
 }
 }  // namespace
 
@@ -79,7 +37,7 @@ void BGDisplayFaceOneDigitDual::showReadings(
     DisplayManager.setFont(FONT_TYPE::SMALL);
     DisplayManager.setTextColor(dataIsOld ? BG_COLOR_OLD : getRoundedBgColorDual(roundedFirst));
     DisplayManager.printText(0, 6, String(tensFirst).c_str(), TEXT_ALIGNMENT::LEFT, 2);
-    drawOnePixelTrendArrowDual(3, firstReading.trend, dataIsOld);
+    ODA::draw(3, firstReading.trend, dataIsOld);
 
     // Secondary reading: 1px gap at x=4, digit at x=5, arrow at x=8
     const auto secondReadings = bgSourceManager.getSecondaryGlucoseData();
@@ -92,7 +50,7 @@ void BGDisplayFaceOneDigitDual::showReadings(
 
         DisplayManager.setTextColor(secondIsOld ? BG_COLOR_OLD : getRoundedBgColorDual(roundedSecond));
         DisplayManager.printText(5, 6, String(tensSecond).c_str(), TEXT_ALIGNMENT::LEFT, 2);
-        drawOnePixelTrendArrowDual(8, secondReading.trend, secondIsOld);
+        ODA::draw(8, secondReading.trend, secondIsOld);
     }
 
     BGDisplayManager_::drawTimerBlocks(firstReading, MATRIX_WIDTH, 0, 7);
