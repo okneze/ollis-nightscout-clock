@@ -5,7 +5,7 @@
 #include "globals.h"
 
 namespace {
-int roundToNearestTen(int value) { return ((value + 5) / 10) * 10; }
+int roundToNearestTen(int value) { return (((value > 394 ? 394 : value) + 5) / 10) * 10; }
 
 uint16_t getRoundedBgColor(int roundedSgv) {
     if (roundedSgv < 100) {
@@ -29,12 +29,15 @@ void BGDisplayFaceOneDigit::showReadings(
     }
 
     const auto lastReading = readings.back();
+    const bool isHigh = lastReading.sgv >= 400;
     const int roundedSgv = roundToNearestTen(lastReading.sgv);
     const int tensDigit = (roundedSgv / 10) % 10;
 
     DisplayManager.setFont(FONT_TYPE::SMALL);
-    DisplayManager.setTextColor(dataIsOld ? BG_COLOR_OLD : getRoundedBgColor(roundedSgv));
-    DisplayManager.printText(0, 6, String(tensDigit).c_str(), TEXT_ALIGNMENT::LEFT, 2);
+    DisplayManager.setTextColor(
+        dataIsOld ? BG_COLOR_OLD : (isHigh ? COLOR_RED : getRoundedBgColor(roundedSgv)));
+    const String displayText = isHigh ? "H" : String(tensDigit);
+    DisplayManager.printText(0, 6, displayText.c_str(), TEXT_ALIGNMENT::LEFT, 2);
 
     // Draw arrow immediately after the 3px-wide digit, with no extra spacing.
     ODA::draw(3, lastReading.trend, dataIsOld);
