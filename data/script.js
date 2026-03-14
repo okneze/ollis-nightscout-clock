@@ -11,9 +11,11 @@
     let webAuthPassword = "";
     let configLoaded = false;
 
-    if (window.location.href.indexOf("127.0.0.1") > 0) {
-        console.log("Setting clock host to lab ESP..");
-        clockHost = "http://192.168.86.24";
+    const urlParams = new URLSearchParams(window.location.search);
+    const clockHostOverride = (urlParams.get('clockHost') || '').trim();
+    if (clockHostOverride.length > 0) {
+        clockHost = clockHostOverride.replace(/\/$/, '');
+        console.log(`Using clockHost override: ${clockHost}`);
     }
 
     const patterns = {
@@ -112,7 +114,7 @@
         const isChecked = $('#custom_hostname_enable').is(':checked');
         $('#custom_hostname_settings').toggleClass('d-none', !isChecked);
     }
-    
+
     function toggleCustomNoDataSettings() {
         const isChecked = $('#custom_nodatatimer_enable').is(':checked');
         $('#custom_nodatatimer_settings').toggleClass('d-none', !isChecked);
@@ -129,7 +131,7 @@
     function toggleWifiPasswordField() {
         const isChecked = $('#open_wifi_network').is(':checked');
         const passwordField = $('#wifi_password');
-        
+
         if (isChecked) {
             // Clear and disable the password field when open network is selected
             passwordField.val('').prop('disabled', true).removeClass('is-invalid').addClass('is-valid');
@@ -317,7 +319,7 @@
         }
 
         tryAlarmUrl = clockHost + tryAlarmUrl;
-        
+
         fetch(tryAlarmUrl, {
             method: "POST",
             headers: {
@@ -365,6 +367,7 @@
         $('#alarm_urgent_low_enable').change((e) => { changeAlarmState(e.target) });
 
         $('#glucose_source').change(glucoseDataSourceSwitch);
+        $('#glucose_source_secondary').change(glucoseDataSourceSecondarySwitch);
 
         $('#bg_units').change((e) => {
             validateBG();
@@ -374,6 +377,9 @@
 
         $('#ns_protocol').change((e) => {
             validate($('#ns_protocol'), patterns.ns_protocol);
+        });
+        $('#ns_protocol_secondary').change((e) => {
+            validate($('#ns_protocol_secondary'), patterns.ns_protocol);
         });
 
     }
@@ -400,6 +406,8 @@
         console.log("Validated wifi password, result: " + allValid);
         allValid &= validateGlucoseSource();
         console.log("Validated glucose source, result: " + allValid);
+        allValid &= validateSecondaryGlucoseSource();
+        console.log("Validated secondary glucose source, result: " + allValid);
         allValid &= validateBG();
         console.log("Validated BG, result: " + allValid);
         allValid &= validate($('#clock_timezone'), patterns.clock_timezone);
@@ -438,7 +446,7 @@
 
         let url = "/api/llu/patients";
         url = clockHost + url;
-        
+
         console.log("Polling patients list from LibreLink Up...");
         fetch(url, {
             method: "GET",
@@ -533,6 +541,62 @@
                 setElementValidity(glucoseSource, true);
                 addFocusOutValidation('medtrum_email', () => patterns.email_format);
                 addFocusOutValidation('medtrum_password', () => patterns.dexcom_password);
+                break;
+            default:
+                setElementValidity(glucoseSource, false);
+                break;
+        }
+    }
+
+    function glucoseDataSourceSecondarySwitch() {
+        const glucoseSource = $('#glucose_source_secondary');
+        const value = glucoseSource.val();
+        $('#nightscout_settings_card_secondary').toggleClass("d-none", value !== "nightscout");
+        $('#dexcom_settings_card_secondary').toggleClass("d-none", value !== "dexcom");
+        $('#librelinkup_settings_card_secondary').toggleClass("d-none", value !== "librelinkup");
+        $('#medtrum_settings_card_secondary').toggleClass("d-none", value !== "medtrum");
+
+        removeFocusOutValidation('ns_hostname_secondary');
+        removeFocusOutValidation('ns_port_secondary');
+        removeFocusOutValidation('api_secret_secondary');
+        removeFocusOutValidation('dexcom_server_secondary');
+        removeFocusOutValidation('dexcom_username_secondary');
+        removeFocusOutValidation('dexcom_password_secondary');
+        removeFocusOutValidation('librelinkup_email_secondary');
+        removeFocusOutValidation('librelinkup_password_secondary');
+        removeFocusOutValidation('librelinkup_region_secondary');
+        removeFocusOutValidation('medtrum_email_secondary');
+        removeFocusOutValidation('medtrum_password_secondary');
+
+        switch (value) {
+            case "nightscout":
+                setElementValidity(glucoseSource, true);
+                addFocusOutValidation('ns_hostname_secondary');
+                addFocusOutValidation('ns_port_secondary');
+                addFocusOutValidation('api_secret_secondary');
+                break;
+            case "dexcom":
+                setElementValidity(glucoseSource, true);
+                addFocusOutValidation('dexcom_server_secondary');
+                addFocusOutValidation('dexcom_username_secondary');
+                addFocusOutValidation('dexcom_password_secondary');
+                break;
+            case "librelinkup":
+                setElementValidity(glucoseSource, true);
+                addFocusOutValidation('librelinkup_email_secondary');
+                addFocusOutValidation('librelinkup_password_secondary');
+                addFocusOutValidation('librelinkup_region_secondary');
+                break;
+            case "medtrum":
+                setElementValidity(glucoseSource, true);
+                addFocusOutValidation('medtrum_email_secondary', () => patterns.email_format);
+                addFocusOutValidation('medtrum_password_secondary', () => patterns.dexcom_password);
+                break;
+            case "carelink":
+                setElementValidity(glucoseSource, true);
+                break;
+            case "no_source":
+                setElementValidity(glucoseSource, true);
                 break;
             default:
                 setElementValidity(glucoseSource, false);
@@ -780,6 +844,39 @@
         return isValid;
     }
 
+    function validateSecondaryGlucoseSource() {
+        const glucoseSource = $('#glucose_source_secondary');
+        const value = glucoseSource.val();
+        let isValid = true;
+        if (value === "nightscout") {
+            setElementValidity(glucoseSource, true);
+            isValid &= validate($('#ns_hostname_secondary'), patterns.ns_hostname);
+            isValid &= validate($('#ns_port_secondary'), patterns.ns_port);
+            isValid &= validate($('#api_secret_secondary'), patterns.api_secret);
+            isValid &= validate($('#ns_protocol_secondary'), patterns.ns_protocol);
+        } else if (value === "dexcom") {
+            setElementValidity(glucoseSource, true);
+            isValid &= validate($('#dexcom_server_secondary'), patterns.dexcom_server);
+            isValid &= validate($('#dexcom_username_secondary'), patterns.dexcom_username);
+            isValid &= validate($('#dexcom_password_secondary'), patterns.dexcom_password);
+        } else if (value === "medtrum") {
+            setElementValidity(glucoseSource, true);
+            isValid &= validate($('#medtrum_email_secondary'), patterns.email_format);
+            isValid &= validate($('#medtrum_password_secondary'), patterns.dexcom_password);
+        } else if (value === "librelinkup") {
+            setElementValidity(glucoseSource, true);
+            isValid &= validate($('#librelinkup_email_secondary'), patterns.email_format);
+            isValid &= validate($('#librelinkup_password_secondary'), patterns.dexcom_password);
+            isValid &= validate($('#librelinkup_region_secondary'), patterns.not_empty);
+        } else if (value === "carelink" || value === "no_source") {
+            setElementValidity(glucoseSource, true);
+        } else {
+            isValid = false;
+            setElementValidity(glucoseSource, false);
+        }
+        return isValid;
+    }
+
     function createJson() {
         var json = configJson;
         //WiFi
@@ -792,15 +889,21 @@
 
         //Glucose source
         json['data_source'] = $('#glucose_source').val();
+        json['data_source_secondary'] = $('#glucose_source_secondary').val();
 
         //Dexcom
         json['dexcom_server'] = $('#dexcom_server').val();
         json['dexcom_username'] = $('#dexcom_username').val();
         json['dexcom_password'] = $('#dexcom_password').val();
+        json['dexcom_server_secondary'] = $('#dexcom_server_secondary').val();
+        json['dexcom_username_secondary'] = $('#dexcom_username_secondary').val();
+        json['dexcom_password_secondary'] = $('#dexcom_password_secondary').val();
 
         // Medtrum Easy Follow
         json['medtrum_email'] = $('#medtrum_email').val();
         json['medtrum_password'] = $('#medtrum_password').val();
+        json['medtrum_email_secondary'] = $('#medtrum_email_secondary').val();
+        json['medtrum_password_secondary'] = $('#medtrum_password_secondary').val();
 
         //LibreLinkUp
         json['librelinkup_email'] = $('#librelinkup_email').val();
@@ -809,6 +912,10 @@
         if ($('#librelinkup_patient_select').length > 0 && $('#librelinkup_patient_select').val() != "") {
             json['librelinkup_patient_id'] = $('#librelinkup_patient_select').val();
         }
+        json['librelinkup_email_secondary'] = $('#librelinkup_email_secondary').val();
+        json['librelinkup_password_secondary'] = $('#librelinkup_password_secondary').val();
+        json['librelinkup_region_secondary'] = $('#librelinkup_region_secondary').val();
+        json['librelinkup_patient_id_secondary'] = $('#librelinkup_patient_id_secondary').val();
 
         //Nightscout
         var url = new URL("http://bogus.url/");
@@ -818,6 +925,14 @@
         json['nightscout_url'] = url.toString();
         json['api_secret'] = $('#api_secret').val();
         json['nightscout_simplified_api'] = $('#nightscout_simplified_api').is(':checked');
+
+        var secondaryUrl = new URL("http://bogus.url/");
+        secondaryUrl.protocol = $('#ns_protocol_secondary').val();
+        secondaryUrl.hostname = $('#ns_hostname_secondary').val();
+        secondaryUrl.port = $('#ns_port_secondary').val();
+        json['nightscout_url_secondary'] = secondaryUrl.toString();
+        json['api_secret_secondary'] = $('#api_secret_secondary').val();
+        json['nightscout_simplified_api_secondary'] = $('#nightscout_simplified_api_secondary').is(':checked');
 
         //Glucose settings
         json['units'] = $('#bg_units').val();
@@ -882,7 +997,7 @@
         json['custom_hostname_enable'] = $('#custom_hostname_enable').is(':checked');
         json['custom_hostname'] = $('#custom_hostname').val();
 
-         // Custom No Data Timer
+        // Custom No Data Timer
         json['custom_nodatatimer_enable'] = $('#custom_nodatatimer_enable').is(':checked');
         json['custom_nodatatimer'] = $('#custom_nodatatimer').val();
 
@@ -928,7 +1043,7 @@
 
         saveUrl = clockHost + saveUrl;
         resetUrl = clockHost + resetUrl;
-        
+
         fetch(saveUrl, {
             method: "POST",
             headers: {
@@ -957,13 +1072,14 @@
 
                         }
                         else {
-                            showToastFailure("Error", "Failed to save settings");
+                            const statusMessage = data?.status ? `Failed to save settings: ${data.status}` : "Failed to save settings";
+                            showToastFailure("Error", statusMessage);
                         }
                     });
                 }
                 else {
                     console.log(`Response error: ${res?.status}`)
-                    showToastFailure("Error", "Failed to save settings");
+                    showToastFailure("Error", `Failed to save settings (HTTP ${res?.status})`);
                 }
             })
             .catch(error => {
@@ -995,8 +1111,8 @@
 
     function validate(field, regex) {
         try {
-        var result = setElementValidity(field, regex.test(field.val()));
-        return result;
+            var result = setElementValidity(field, regex.test(field.val()));
+            return result;
         } catch (ex) {
             console.error(ex);
         }
@@ -1114,7 +1230,7 @@
         //WiFi
         $('#ssid').val(json['ssid']);
         $('#wifi_password').val(json['password']);
-        
+
         // Check open_wifi_network if password is empty
         if ((!json['password'] || json['password'].trim() === '') && json['ssid'] && json['ssid'].length > 0) {
             $('#open_wifi_network').prop('checked', true);
@@ -1125,20 +1241,31 @@
         // glucose source
         $('#glucose_source').val(json['data_source']);
         $('#glucose_source').trigger('change');
+        $('#glucose_source_secondary').val(json['data_source_secondary'] || 'no_source');
+        $('#glucose_source_secondary').trigger('change');
 
         //Dexcom
         $('#dexcom_server').val(json['dexcom_server']);
         $('#dexcom_username').val(json['dexcom_username']);
         $('#dexcom_password').val(json['dexcom_password']);
+        $('#dexcom_server_secondary').val(json['dexcom_server_secondary']);
+        $('#dexcom_username_secondary').val(json['dexcom_username_secondary']);
+        $('#dexcom_password_secondary').val(json['dexcom_password_secondary']);
 
         // Medtrum Easy Follow
         $('#medtrum_email').val(json['medtrum_email']);
         $('#medtrum_password').val(json['medtrum_password']);
+        $('#medtrum_email_secondary').val(json['medtrum_email_secondary']);
+        $('#medtrum_password_secondary').val(json['medtrum_password_secondary']);
 
         //LibreLinkUp
         $('#librelinkup_email').val(json['librelinkup_email']);
         $('#librelinkup_password').val(json['librelinkup_password']);
         $('#librelinkup_region').val(json['librelinkup_region']);
+        $('#librelinkup_email_secondary').val(json['librelinkup_email_secondary']);
+        $('#librelinkup_password_secondary').val(json['librelinkup_password_secondary']);
+        $('#librelinkup_region_secondary').val(json['librelinkup_region_secondary']);
+        $('#librelinkup_patient_id_secondary').val(json['librelinkup_patient_id_secondary']);
 
         //Nightscout        
         $('#api_secret').val(json['api_secret']);
@@ -1159,6 +1286,26 @@
             $('#ns_hostname').val(url.hostname);
             $('#ns_port').val(url.port);
             $('#ns_protocol').val(url.protocol.replace(":", ""));
+        }
+
+        $('#api_secret_secondary').val(json['api_secret_secondary']);
+        $('#nightscout_simplified_api_secondary').prop('checked', json['nightscout_simplified_api_secondary']);
+        let urlSecondary = undefined;
+        if ("canParse" in URL) {
+            if (URL.canParse(json['nightscout_url_secondary'])) {
+                urlSecondary = new URL(json['nightscout_url_secondary']);
+            }
+        } else {
+            try {
+                urlSecondary = new URL(json['nightscout_url_secondary']);
+            } catch {
+                console.log("Cannot parse saved secondary nightscout URL");
+            }
+        }
+        if (urlSecondary) {
+            $('#ns_hostname_secondary').val(urlSecondary.hostname);
+            $('#ns_port_secondary').val(urlSecondary.port);
+            $('#ns_protocol_secondary').val(urlSecondary.protocol.replace(":", ""));
         }
 
         $('#bg_units').val(json['units']);
@@ -1214,10 +1361,10 @@
         $('#custom_hostname').val(json['custom_hostname']);
         toggleCustomHostnameSettings();
 
-         // Custom No Data Timer
+        // Custom No Data Timer
         $('#custom_nodatatimer_enable').prop('checked', json['custom_nodatatimer_enable']);
         const nodatatimer = json['custom_nodatatimer'];
-        patterns.custom_nodatatimer.test(nodatatimer) ? $('#custom_nodatatimer').val(nodatatimer) 
+        patterns.custom_nodatatimer.test(nodatatimer) ? $('#custom_nodatatimer').val(nodatatimer)
             : $('#custom_nodatatimer').val();
 
         toggleCustomNoDataSettings();
@@ -1230,7 +1377,7 @@
         toggleWebAuthSettings();
         authEnabled = json['web_auth_enable'] === true;
         updateAuthBanner();
-        
+
     }
 
     function loadAlarmDataFromJson(json, alarmType) {
@@ -1264,49 +1411,49 @@
 
     function displayVersionInfo() {
 
-    // Version info logic
+        // Version info logic
 
-    let versionUrl = "/version.txt?";
-    versionUrl = clockHost + "/version.txt?";
+        let versionUrl = "/version.txt?";
+        versionUrl = clockHost + "/version.txt?";
 
-    fetch(versionUrl + Date.now())
-        .then(res => {
-            if (!res.ok) throw new Error('Failed to fetch current version');
-            return res.text();
-        })
-        .then(currentVersion => {
-            currentVersion = currentVersion.trim();
-            if (!currentVersion) throw new Error('Current version is empty');
-            $('#current_version').text(currentVersion);
-            fetch('https://raw.githubusercontent.com/ktomy/nightscout-clock/refs/heads/main/data/version.txt?' + Date.now())
-                .then(res => {
-                    if (!res.ok) throw new Error('Failed to fetch latest version');
-                    return res.text();
-                })
-                .then(latestVersion => {
-                    latestVersion = latestVersion.trim();
-                    if (!latestVersion) throw new Error('Latest version is empty');
-                    $('#latest_version').text(latestVersion);
-                    if (compareVersions(currentVersion, latestVersion) < 0) {
-                        $('#update_status').html(' <a href="https://github.com/ktomy/nightscout-clock/tree/main?tab=readme-ov-file#changes" target="_blank">Changes</a>');
-                        $('#update_link').removeClass('d-none');
-                    } else {
-                        $('#update_status').text('You are using the latest version.');
+        fetch(versionUrl + Date.now())
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to fetch current version');
+                return res.text();
+            })
+            .then(currentVersion => {
+                currentVersion = currentVersion.trim();
+                if (!currentVersion) throw new Error('Current version is empty');
+                $('#current_version').text(currentVersion);
+                fetch('https://raw.githubusercontent.com/ktomy/nightscout-clock/refs/heads/main/data/version.txt?' + Date.now())
+                    .then(res => {
+                        if (!res.ok) throw new Error('Failed to fetch latest version');
+                        return res.text();
+                    })
+                    .then(latestVersion => {
+                        latestVersion = latestVersion.trim();
+                        if (!latestVersion) throw new Error('Latest version is empty');
+                        $('#latest_version').text(latestVersion);
+                        if (compareVersions(currentVersion, latestVersion) < 0) {
+                            $('#update_status').html(' <a href="https://github.com/ktomy/nightscout-clock/tree/main?tab=readme-ov-file#changes" target="_blank">Changes</a>');
+                            $('#update_link').removeClass('d-none');
+                        } else {
+                            $('#update_status').text('You are using the latest version.');
+                            $('#update_link').addClass('d-none');
+                        }
+                    })
+                    .catch((err) => {
+                        $('#latest_version').text('Error');
+                        $('#update_status').text('Could not check for updates: ' + err.message);
                         $('#update_link').addClass('d-none');
-                    }
-                })
-                .catch((err) => {
-                    $('#latest_version').text('Error');
-                    $('#update_status').text('Could not check for updates: ' + err.message);
-                    $('#update_link').addClass('d-none');
-                });
-        })
-        .catch((err) => {
-            $('#current_version').text('Error');
-            $('#latest_version').text('-');
-            $('#update_status').text('Could not read current version: ' + err.message);
-            $('#update_link').addClass('d-none');
-        });
+                    });
+            })
+            .catch((err) => {
+                $('#current_version').text('Error');
+                $('#latest_version').text('-');
+                $('#update_status').text('Could not read current version: ' + err.message);
+                $('#update_link').addClass('d-none');
+            });
     }
     // Simple version comparison: returns -1 if v1 < v2, 0 if equal, 1 if v1 > v2
     function compareVersions(v1, v2) {
@@ -1357,13 +1504,13 @@
                         case "connected":
                             dataSourceStatusBadge.removeClass().addClass('badge ms-1 ' + green);
                             dataSourceStatusBadge.text('Connected');
-                            break; 
+                            break;
                         case "initialized":
                             dataSourceStatusBadge.removeClass().addClass('badge ms-1 ' + yellow);
                             if (data.isInAPMode == true) {
                                 dataSourceStatusBadge.text('Initial Mode');
                             } else {
-                            dataSourceStatusBadge.text('Connecting');
+                                dataSourceStatusBadge.text('Connecting');
                             }
                             break;
                         default:

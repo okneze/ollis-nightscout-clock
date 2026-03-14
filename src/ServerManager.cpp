@@ -320,7 +320,7 @@ void ServerManager_::setupWebServer(IPAddress ip) {
         request->send(200, "application/json", jsonResponse);
     });
 
-    ws->addHandler(new AsyncCallbackJsonWebHandler(
+    auto* authLoginHandler = new AsyncCallbackJsonWebHandler(
         "/api/auth/login", [this](AsyncWebServerRequest* request, JsonVariant& json) {
             if (not json.is<JsonObject>()) {
                 request->send(400, "application/json", "{\"status\": \"json parsing error\"}");
@@ -345,7 +345,9 @@ void ServerManager_::setupWebServer(IPAddress ip) {
             response->addHeader(
                 "Set-Cookie", buildAuthCookie(webAuthToken, WEB_AUTH_COOKIE_MAX_AGE_SEC));
             request->send(response);
-        }));
+        });
+    authLoginHandler->setMethod(HTTP_POST);
+    ws->addHandler(authLoginHandler);
 
     ws->on("/api/auth/logout", HTTP_POST, [this](AsyncWebServerRequest* request) {
         if (!isWebAuthEnabled()) {
@@ -363,7 +365,7 @@ void ServerManager_::setupWebServer(IPAddress ip) {
         request->send(response);
     });
 
-    ws->addHandler(new AsyncCallbackJsonWebHandler(
+    auto* saveHandler = new AsyncCallbackJsonWebHandler(
         "/api/save", [this](AsyncWebServerRequest* request, JsonVariant& json) {
             if (!enforceAuthentication(request)) {
                 return;
@@ -378,9 +380,12 @@ void ServerManager_::setupWebServer(IPAddress ip) {
             } else {
                 request->send(200, "application/json", "{\"status\": \"Settings save error\"}");
             }
-        }));
+        });
+    saveHandler->setMethod(HTTP_POST);
+    saveHandler->setMaxContentLength(32768);
+    ws->addHandler(saveHandler);
 
-    ws->addHandler(new AsyncCallbackJsonWebHandler(
+    auto* customAlarmHandler = new AsyncCallbackJsonWebHandler(
         "/api/alarm/custom", [](AsyncWebServerRequest* request, JsonVariant& json) {
             if (!ServerManager.enforceAuthentication(request)) {
                 return;
@@ -406,9 +411,11 @@ void ServerManager_::setupWebServer(IPAddress ip) {
 
             PeripheryManager.playRTTTLString(melody);
             request->send(200, "application/json", "{\"status\": \"ok\"}");
-        }));
+        });
+    customAlarmHandler->setMethod(HTTP_POST);
+    ws->addHandler(customAlarmHandler);
 
-    ws->addHandler(new AsyncCallbackJsonWebHandler(
+    auto* alarmHandler = new AsyncCallbackJsonWebHandler(
         "/api/alarm", [this](AsyncWebServerRequest* request, JsonVariant& json) {
             if (!enforceAuthentication(request)) {
                 return;
@@ -432,7 +439,9 @@ void ServerManager_::setupWebServer(IPAddress ip) {
             } else {
                 request->send(400, "application/json", "{\"status\": \"alarm key not found\"}");
             }
-        }));
+        });
+    alarmHandler->setMethod(HTTP_POST);
+    ws->addHandler(alarmHandler);
 
     ws->on("/api/reset", HTTP_POST, [this](AsyncWebServerRequest* request) {
         if (!enforceAuthentication(request)) {
@@ -444,7 +453,7 @@ void ServerManager_::setupWebServer(IPAddress ip) {
         ESP.restart();
     });
 
-    ws->addHandler(new AsyncCallbackJsonWebHandler(
+    auto* displayPowerHandler = new AsyncCallbackJsonWebHandler(
         "/api/displaypower", [this](AsyncWebServerRequest* request, JsonVariant& json) {
             if (!enforceAuthentication(request)) {
                 return;
@@ -469,7 +478,9 @@ void ServerManager_::setupWebServer(IPAddress ip) {
             } else {
                 request->send(400, "application/json", "{\"status\": \"power key not found\"}");
             }
-        }));
+        });
+    displayPowerHandler->setMethod(HTTP_POST);
+    ws->addHandler(displayPowerHandler);
 
     ws->on("/api/factory-reset", HTTP_POST, [this](AsyncWebServerRequest* request) {
         if (!enforceAuthentication(request)) {

@@ -2,7 +2,7 @@
 
 ![Nightscout clock logo](https://github.com/ktomy/nightscout-clock/assets/1446257/1198c06d-b017-409d-aca3-2bca63581ecb)
 
-### Current version: 0.28.1
+### Current version: 0.28.1.1
 
 ![Build and Release](https://github.com/ktomy/nightscout-clock/actions/workflows/build_release.yml/badge.svg)
 
@@ -12,7 +12,7 @@ _Nightscout Clock (or NSClock) is an open-source product aimed at helping caregi
 
 ## Here is what it can do
 
-- 6 colorful clockfaces
+- 7 colorful clockfaces
 - Can get glucose data from Dexcom Share, Nightscout, LibreLink Up or Medtrum EasyFollow
 - Supports mg/dl and mmol/l
 - 10 minutes setup through web browser
@@ -60,6 +60,7 @@ Nightscout Clock is a custom firmware for Ulanzi TC001. It can also run (with mi
 | Graph and value | <img width="500" alt="Graph and value" src="https://github.com/user-attachments/assets/db9046aa-5121-43fa-b367-807cdf3c5ef3" /> |  The dots on the right side replace the trend arrow.<br>2 white dots = horizontal arrow.<br>2 colored dots (white + green) = 45° arrow.<br>3 dots = vertical arrow.<br>4 dots = double arrow.<br>Colored dots above = upward trend.<br>Colored dots below = downward trend. <br /><br /> Dots under the value are the same as <br /> horizontal bars on the other faces.<br /> See "Simple" face for details |
 | Delta           | <img width="500" alt="Photo of the Nightscout Clock" src="https://github.com/user-attachments/assets/f8005f49-6e32-43f1-bd84-0bb4e4691d7f" /> |         |
 | Time and value  | <img width="500" alt="Time and value" src="https://github.com/user-attachments/assets/cd72bf15-85e3-4621-b5ca-d639c1849cd5" /> | The dots on the right side replace the trend arrow.<br>2 white dots = horizontal arrow.<br>2 colored dots (white + green) = 45° arrow.<br>3 dots = vertical arrow.<br>4 dots = double arrow.<br>Colored dots above = upward trend.<br>Colored dots below = downward trend. <br /><br /> For the bottom-side bars see "Simple" face for details |
+| BG1 + BG2       | —                                                                                                    | Shows BG1 with trend arrow, then a space, then BG2 with trend arrow. BG1 uses the primary data source. BG2 uses the secondary data source configured in Web UI. |
 
 ### Configuration web interface
 

@@ -6,6 +6,70 @@
 
 #include "globals.h"
 
+namespace {
+BG_SOURCE parseBgSource(String data_source) {
+    data_source.toLowerCase();
+    if (data_source == "nightscout") {
+        return BG_SOURCE::NIGHTSCOUT;
+    } else if (data_source == "dexcom") {
+        return BG_SOURCE::DEXCOM;
+    } else if (data_source == "medtronic" || data_source == "carelink") {
+        return BG_SOURCE::MEDTRONIC;
+    } else if (data_source == "api") {
+        return BG_SOURCE::API;
+    } else if (data_source == "librelinkup") {
+        return BG_SOURCE::LIBRELINKUP;
+    } else if (data_source == "medtrum") {
+        return BG_SOURCE::MEDTRUM;
+    }
+    return BG_SOURCE::NO_SOURCE;
+}
+
+String bgSourceToConfigString(BG_SOURCE source) {
+    switch (source) {
+        case BG_SOURCE::NIGHTSCOUT:
+            return "nightscout";
+        case BG_SOURCE::DEXCOM:
+            return "dexcom";
+        case BG_SOURCE::MEDTRONIC:
+            return "medtronic";
+        case BG_SOURCE::API:
+            return "api";
+        case BG_SOURCE::LIBRELINKUP:
+            return "librelinkup";
+        case BG_SOURCE::MEDTRUM:
+            return "medtrum";
+        default:
+            return "no_source";
+    }
+}
+
+DEXCOM_SERVER parseDexcomServer(String dexcomServerStr) {
+    dexcomServerStr.toLowerCase();
+    if (dexcomServerStr == "us") {
+        return DEXCOM_SERVER::US;
+    } else if (dexcomServerStr == "ous") {
+        return DEXCOM_SERVER::NON_US;
+    } else if (dexcomServerStr == "jp") {
+        return DEXCOM_SERVER::JAPAN;
+    }
+    return DEXCOM_SERVER::NON_US;
+}
+
+String dexcomServerToConfigString(DEXCOM_SERVER server) {
+    switch (server) {
+        case DEXCOM_SERVER::US:
+            return "us";
+        case DEXCOM_SERVER::NON_US:
+            return "ous";
+        case DEXCOM_SERVER::JAPAN:
+            return "jp";
+        default:
+            return "ous";
+    }
+}
+}  // namespace
+
 // The getter for the instantiated singleton instance
 SettingsManager_& SettingsManager_::getInstance() {
     static SettingsManager_ instance;
@@ -107,45 +171,37 @@ bool SettingsManager_::loadSettingsFromFile() {
     settings.default_clockface = (*doc)["default_face"].as<int>();
 
     String data_source = (*doc)["data_source"].as<String>();
-    if (data_source == "nightscout") {
-        settings.bg_source = BG_SOURCE::NIGHTSCOUT;
-    } else if (data_source == "dexcom") {
-        settings.bg_source = BG_SOURCE::DEXCOM;
-    } else if (data_source == "medtronic") {
-        settings.bg_source = BG_SOURCE::MEDTRONIC;
-    } else if (data_source == "api") {
-        settings.bg_source = BG_SOURCE::API;
-    } else if (data_source == "librelinkup") {
-        settings.bg_source = BG_SOURCE::LIBRELINKUP;
-    } else if (data_source == "medtrum") {
-        settings.bg_source = BG_SOURCE::MEDTRUM;
-    } else {
-        settings.bg_source = BG_SOURCE::NO_SOURCE;
-    }
+    settings.bg_source = parseBgSource(data_source);
+    String data_source_secondary = (*doc)["data_source_secondary"] | "no_source";
+    settings.bg_source_secondary = parseBgSource(data_source_secondary);
+
     settings.medtrum_email = (*doc)["medtrum_email"].as<String>();
     settings.medtrum_password = (*doc)["medtrum_password"].as<String>();
+    settings.medtrum_email_secondary = (*doc)["medtrum_email_secondary"].as<String>();
+    settings.medtrum_password_secondary = (*doc)["medtrum_password_secondary"].as<String>();
+
     settings.dexcom_username = (*doc)["dexcom_username"].as<String>();
     settings.dexcom_password = (*doc)["dexcom_password"].as<String>();
-    String dexcomServerStr = (*doc)["dexcom_server"].as<String>();
-    if (dexcomServerStr == "us") {
-        settings.dexcom_server = DEXCOM_SERVER::US;
-    } else if (dexcomServerStr == "ous") {
-        settings.dexcom_server = DEXCOM_SERVER::NON_US;
-    } else if (dexcomServerStr == "jp") {
-        settings.dexcom_server = DEXCOM_SERVER::JAPAN;
-    } else {
-        DEBUG_PRINTLN("Unknown Dexcom server in config, defaulting to NON_US");
-        settings.dexcom_server = DEXCOM_SERVER::NON_US;
-    }
+    settings.dexcom_server = parseDexcomServer((*doc)["dexcom_server"].as<String>());
+    settings.dexcom_username_secondary = (*doc)["dexcom_username_secondary"].as<String>();
+    settings.dexcom_password_secondary = (*doc)["dexcom_password_secondary"].as<String>();
+    settings.dexcom_server_secondary = parseDexcomServer((*doc)["dexcom_server_secondary"] | "ous");
 
     settings.librelinkup_email = (*doc)["librelinkup_email"].as<String>();
     settings.librelinkup_password = (*doc)["librelinkup_password"].as<String>();
     settings.librelinkup_region = (*doc)["librelinkup_region"].as<String>();
     settings.librelinkup_patient_id = (*doc)["librelinkup_patient_id"].as<String>();
+    settings.librelinkup_email_secondary = (*doc)["librelinkup_email_secondary"].as<String>();
+    settings.librelinkup_password_secondary = (*doc)["librelinkup_password_secondary"].as<String>();
+    settings.librelinkup_region_secondary = (*doc)["librelinkup_region_secondary"] | "EU";
+    settings.librelinkup_patient_id_secondary = (*doc)["librelinkup_patient_id_secondary"].as<String>();
 
     settings.nightscout_url = (*doc)["nightscout_url"].as<String>();
     settings.nightscout_api_key = (*doc)["api_secret"].as<String>();
     settings.nightscout_simplified_api = (*doc)["nightscout_simplified_api"].as<bool>();
+    settings.nightscout_url_secondary = (*doc)["nightscout_url_secondary"].as<String>();
+    settings.nightscout_api_key_secondary = (*doc)["api_secret_secondary"].as<String>();
+    settings.nightscout_simplified_api_secondary = (*doc)["nightscout_simplified_api_secondary"] | false;
 
     settings.tz_libc_value = (*doc)["tz_libc"].as<String>();
     settings.time_format =
@@ -225,60 +281,36 @@ bool SettingsManager_::saveSettingsToFile() {
     (*doc)["brightness_level"] = settings.brightness_level + 1;
     (*doc)["default_face"] = settings.default_clockface;
 
-    String data_source = "no_source";
-    switch (settings.bg_source) {
-        case BG_SOURCE::NIGHTSCOUT:
-            data_source = "nightscout";
-            break;
-        case BG_SOURCE::DEXCOM:
-            data_source = "dexcom";
-            break;
-        case BG_SOURCE::MEDTRONIC:
-            data_source = "medtronic";
-            break;
-        case BG_SOURCE::API:
-            data_source = "api";
-            break;
-        case BG_SOURCE::LIBRELINKUP:
-            data_source = "librelinkup";
-            break;
-        case BG_SOURCE::MEDTRUM:
-            data_source = "medtrum";
-            break;
-        default:
-            data_source = "no_source";
-            break;
-    }
-    (*doc)["data_source"] = data_source;
+    (*doc)["data_source"] = bgSourceToConfigString(settings.bg_source);
+    (*doc)["data_source_secondary"] = bgSourceToConfigString(settings.bg_source_secondary);
+
     (*doc)["medtrum_email"] = settings.medtrum_email;
     (*doc)["medtrum_password"] = settings.medtrum_password;
+    (*doc)["medtrum_email_secondary"] = settings.medtrum_email_secondary;
+    (*doc)["medtrum_password_secondary"] = settings.medtrum_password_secondary;
 
     (*doc)["dexcom_username"] = settings.dexcom_username;
     (*doc)["dexcom_password"] = settings.dexcom_password;
-    switch (settings.dexcom_server) {
-        case DEXCOM_SERVER::US:
-            (*doc)["dexcom_server"] = "us";
-            break;
-        case DEXCOM_SERVER::NON_US:
-            (*doc)["dexcom_server"] = "ous";
-            break;
-        case DEXCOM_SERVER::JAPAN:
-            (*doc)["dexcom_server"] = "jp";
-            break;
-        default:
-            DEBUG_PRINTLN("Unknown Dexcom server, defaulting to US");
-            (*doc)["dexcom_server"] = "ous";
-            break;
-    }
+    (*doc)["dexcom_server"] = dexcomServerToConfigString(settings.dexcom_server);
+    (*doc)["dexcom_username_secondary"] = settings.dexcom_username_secondary;
+    (*doc)["dexcom_password_secondary"] = settings.dexcom_password_secondary;
+    (*doc)["dexcom_server_secondary"] = dexcomServerToConfigString(settings.dexcom_server_secondary);
 
     (*doc)["librelinkup_email"] = settings.librelinkup_email;
     (*doc)["librelinkup_password"] = settings.librelinkup_password;
     (*doc)["librelinkup_region"] = settings.librelinkup_region;
     (*doc)["librelinkup_patient_id"] = settings.librelinkup_patient_id;
+    (*doc)["librelinkup_email_secondary"] = settings.librelinkup_email_secondary;
+    (*doc)["librelinkup_password_secondary"] = settings.librelinkup_password_secondary;
+    (*doc)["librelinkup_region_secondary"] = settings.librelinkup_region_secondary;
+    (*doc)["librelinkup_patient_id_secondary"] = settings.librelinkup_patient_id_secondary;
 
     (*doc)["nightscout_url"] = settings.nightscout_url;
     (*doc)["api_secret"] = settings.nightscout_api_key;
     (*doc)["nightscout_simplified_api"] = settings.nightscout_simplified_api;
+    (*doc)["nightscout_url_secondary"] = settings.nightscout_url_secondary;
+    (*doc)["api_secret_secondary"] = settings.nightscout_api_key_secondary;
+    (*doc)["nightscout_simplified_api_secondary"] = settings.nightscout_simplified_api_secondary;
 
     (*doc)["tz_libc"] = settings.tz_libc_value;
     (*doc)["time_format"] = settings.time_format == TIME_FORMAT::HOURS_12 ? "12" : "24";
@@ -329,17 +361,17 @@ bool SettingsManager_::saveSettingsToFile() {
 }
 
 bool SettingsManager_::trySaveJsonAsSettings(JsonDocument doc) {
-    DEBUG_PRINTLN(doc.as<String>());
     auto file = LittleFS.open(CONFIG_JSON, FILE_WRITE);
     if (!file) {
         DEBUG_PRINTLN("Failed to open config file for writing");
         return false;
     }
 
-    auto result = file.print(doc.as<String>());
+    size_t bytesWritten = serializeJson(doc, file);
 
     file.close();
-    if (!result) {
+    if (bytesWritten == 0) {
+        DEBUG_PRINTLN("Failed to serialize config JSON to file");
         return false;
     }
 

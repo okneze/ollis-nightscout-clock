@@ -42,14 +42,16 @@ void setup() {
     }
 
     ServerManager.setup();
-    bgSourceManager.setup(SettingsManager.settings.bg_source);
+    bgSourceManager.setup(
+        SettingsManager.settings.bg_source, SettingsManager.settings.bg_source_secondary);
     bgDisplayManager.setup();
     bgAlarmManager.setup();
     // PeripheryManager.playRTTTLString(sound_boot);
 
     DEBUG_PRINTLN("Setup done");
     if (ServerManager.isConnected) {
-        String welcomeMessage = "Nightscout clock | To configure go to http://" + ServerManager.myIP.toString() + "/";
+        String welcomeMessage =
+            "Nightscout clock | To configure go to http://" + ServerManager.myIP.toString() + "/";
         DisplayManager.scrollColorfulText(welcomeMessage);
 
         DisplayManager.clearMatrix();
