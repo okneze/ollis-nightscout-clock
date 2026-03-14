@@ -51,6 +51,8 @@ void BGDisplayManager_::setup() {
     facesNames[6] = "BG1 and BG2";
     faces.push_back(new BGDisplayFaceOneDigit());
     facesNames[7] = "OneDigit";
+    faces.push_back(new BGDisplayFaceOneDigitDual());
+    facesNames[8] = "OneDigitDual";
 
     currentFaceIndex = SettingsManager.settings.default_clockface;
     if (currentFaceIndex >= faces.size()) {

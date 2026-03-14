@@ -13,6 +13,7 @@
 #include "BGDisplayFaceGraph.h"
 #include "BGDisplayFaceGraphAndBG.h"
 #include "BGDisplayFaceOneDigit.h"
+#include "BGDisplayFaceOneDigitDual.h"
 #include "BGDisplayFaceSimple.h"
 #include "BGDisplayFaceTwoValues.h"
 #include "BGDisplayFaceValueAndDiff.h"
