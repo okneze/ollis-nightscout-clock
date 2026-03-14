@@ -2,7 +2,7 @@
 
 ![Nightscout clock logo](https://github.com/ktomy/nightscout-clock/assets/1446257/1198c06d-b017-409d-aca3-2bca63581ecb)
 
-### Current version: 0.28.1.1
+### Current version: 0.28.1.2
 
 ![Build and Release](https://github.com/ktomy/nightscout-clock/actions/workflows/build_release.yml/badge.svg)
 
@@ -12,7 +12,7 @@ _Nightscout Clock (or NSClock) is an open-source product aimed at helping caregi
 
 ## Here is what it can do
 
-- 7 colorful clockfaces
+- 8 colorful clockfaces
 - Can get glucose data from Dexcom Share, Nightscout, LibreLink Up or Medtrum EasyFollow
 - Supports mg/dl and mmol/l
 - 10 minutes setup through web browser
