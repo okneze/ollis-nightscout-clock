@@ -25,6 +25,8 @@ struct CachedContent {
     int selectedBitmapHeight = 0;
     unsigned long validUntilMs = 0;
     TEXT_ALIGNMENT selectedAlign = TEXT_ALIGNMENT::LEFT;
+    int scrollOffset = 0;
+    unsigned long lastScrollStepMs = 0;
 };
 
 CachedContent oneDigitCache;
@@ -266,6 +268,7 @@ bool decodeHexFrame(const String& hex, int expectedBytes, std::vector<uint8_t>& 
 }
 
 bool textFits(const String& text, int availableWidthPx) {
+    DisplayManager.setFont(FONT_TYPE::SMALL);
     const int widthPx = static_cast<int>(ceil(DisplayManager.getTextWidth(text.c_str(), 2)));
     return widthPx <= availableWidthPx;
 }
@@ -694,6 +697,8 @@ bool updateCacheFromApi(
             cache.selectedText = firstTextCandidate;
             cache.selectedColor = firstTextColor;
             cache.scrollEnabled = true;
+            cache.scrollOffset = 0;
+            cache.lastScrollStepMs = 0;
             lastSuccessMs = millis();
             lastError = "ok";
             return true;
@@ -726,7 +731,7 @@ bool updateCacheFromApi(
     }
 
     http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
-    http.setTimeout(1500);
+    http.setTimeout(800);
     http.setReuse(false);
     http.addHeader("Accept", "application/json");
     http.addHeader("User-Agent", "Nightscout-clock");
@@ -879,15 +884,40 @@ CachedContent& getCacheForView(const char* view) {
     return oneDigitCache;
 }
 
+}  // namespace
+
+bool isOneDigitExternalContentScrolling(const char* view) {
+    const CachedContent& cache = getCacheForView(view);
+    return cache.available && !cache.selectedIsBitmap && cache.scrollEnabled;
+}
+
+namespace {
+
 void renderTextCandidate(
-    const CachedContent& cache, uint8_t contentStartX, uint8_t contentWidth, uint8_t contentHeight) {
+    CachedContent& cache, uint8_t contentStartX, uint8_t contentWidth, uint8_t contentHeight) {
     (void)contentHeight;
     DisplayManager.setFont(FONT_TYPE::SMALL);
     DisplayManager.setTextColor(cache.selectedColor);
 
     if (cache.scrollEnabled) {
-        // Text doesn't fit: use device-side scrolling
-        DisplayManager.scrollColorfulText(cache.selectedText);
+        // Advance scroll position at ~80 ms per pixel (~12 px/s)
+        unsigned long now = millis();
+        if (cache.lastScrollStepMs == 0)
+            cache.lastScrollStepMs = now;
+        if (now - cache.lastScrollStepMs >= 80) {
+            cache.scrollOffset++;
+            cache.lastScrollStepMs = now;
+            int textW = (int)DisplayManager.getTextWidth(cache.selectedText.c_str(), 2);
+            if (cache.scrollOffset > contentWidth + textW) {
+                cache.scrollOffset = 0;
+            }
+        }
+        // Draw text entering from the right edge of the content area.
+        // Left-side masking is handled by the face renderer to preserve pixel-wise scrolling.
+        int16_t x = (int16_t)(contentStartX + contentWidth) - cache.scrollOffset;
+        DisplayManager.printText(
+            x, 6, cache.selectedText.c_str(), TEXT_ALIGNMENT::LEFT, 2,
+            false);  // no immediate show to avoid transient overlap/flicker
         return;
     }
 
@@ -898,7 +928,9 @@ void renderTextCandidate(
     } else if (cache.selectedAlign == TEXT_ALIGNMENT::CENTER) {
         x = contentStartX + contentWidth / 2;  // center of content area
     }
-    DisplayManager.printText(x, 6, cache.selectedText.c_str(), cache.selectedAlign, 2);
+    DisplayManager.printText(
+        x, 6, cache.selectedText.c_str(), cache.selectedAlign, 2,
+        false);  // shown by following face draw calls
 }
 
 void renderBitmapCandidate(

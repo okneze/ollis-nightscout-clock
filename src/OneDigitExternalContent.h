@@ -15,4 +15,6 @@ bool renderOneDigitExternalContent(
 
 String getOneDigitExternalContentStatusJson();
 
+bool isOneDigitExternalContentScrolling(const char* view);
+
 #endif  // ONEDIGITEXTERNALCONTENT_H

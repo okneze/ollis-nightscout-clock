@@ -105,28 +105,65 @@ void BGDisplayManager_::maybeRrefreshScreen(bool force) {
         }
     };
 
+    auto redrawCurrentFace = [this]() {
+        if (displayedReadings.size() > 0) {
+            bool dataIsOld = displayedReadings.back().getSecondsAgo() >
+                             60 * SettingsManager.settings.bg_data_too_old_threshold_minutes;
+            DisplayManager.clearMatrixNoUpdate();
+            currentFace->showReadings(displayedReadings, dataIsOld);
+            DisplayManager.update();
+        } else {
+            DisplayManager.clearMatrixNoUpdate();
+            currentFace->showNoData();
+            DisplayManager.update();
+        }
+    };
+
     if (bgSourceManager.hasNewData(lastReading == NULL ? 0 : lastReading->epoch)) {
         DEBUG_PRINTLN("We have new data");
         auto glucoseData = bgSourceManager.getInstance().getGlucoseData();
-        refreshExternalOneDigitCache(glucoseData);
         bgDisplayManager.showData(glucoseData);
+        // Keep BG values responsive even if external content fetch briefly blocks.
+        refreshExternalOneDigitCache(glucoseData);
+        if (currentFaceIndex == 7 || currentFaceIndex == 8) {
+            redrawCurrentFace();
+        }
         lastRefreshEpoch = currentEpoch;
     } else {
+        // Fast re-render for smooth scrolling (~20 fps) when OneDigit face has scrolling content
+        unsigned long nowMs = millis();
+        bool inOneDigitFace = (currentFaceIndex == 7 || currentFaceIndex == 8);
+        const char* scrollView = (currentFaceIndex == 8) ? "onedigit_dual" : "onedigit";
+        if (inOneDigitFace && isOneDigitExternalContentScrolling(scrollView) &&
+            nowMs - lastScrollRenderMs >= 50) {
+            lastScrollRenderMs = nowMs;
+            if (displayedReadings.size() > 0) {
+                bool dataIsOld = displayedReadings.back().getSecondsAgo() >
+                                 60 * SettingsManager.settings.bg_data_too_old_threshold_minutes;
+                DisplayManager.clearMatrixNoUpdate();
+                currentFace->showReadings(displayedReadings, dataIsOld);
+                DisplayManager.update();
+            }
+        }
+
         // We refresh the display every minue trying to match the exact :00 second
         if (force || timeInfo.tm_sec == 0 && currentEpoch > lastRefreshEpoch ||
             currentEpoch - lastRefreshEpoch > 60) {
             lastRefreshEpoch = currentEpoch;
-            refreshExternalOneDigitCache(displayedReadings);
             if (displayedReadings.size() > 0) {
                 bool dataIsOld = displayedReadings.back().getSecondsAgo() >
                                  60 * SettingsManager.settings.bg_data_too_old_threshold_minutes;
-                DisplayManager.clearMatrix();
+                DisplayManager.clearMatrixNoUpdate();
                 currentFace->showReadings(displayedReadings, dataIsOld);
                 DisplayManager.update();
             } else {
-                DisplayManager.clearMatrix();
+                DisplayManager.clearMatrixNoUpdate();
                 currentFace->showNoData();
                 DisplayManager.update();
+            }
+            refreshExternalOneDigitCache(displayedReadings);
+            if (currentFaceIndex == 7 || currentFaceIndex == 8) {
+                redrawCurrentFace();
             }
         }
     }
@@ -138,8 +175,9 @@ void BGDisplayManager_::showData(std::list<GlucoseReading> glucoseReadings) {
         return;
     }
 
-    DisplayManager.clearMatrix();
+    DisplayManager.clearMatrixNoUpdate();
     currentFace->showReadings(glucoseReadings);
+    DisplayManager.update();
 
     displayedReadings = glucoseReadings;
 }

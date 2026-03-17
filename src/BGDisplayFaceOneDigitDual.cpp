@@ -36,14 +36,17 @@ void BGDisplayFaceOneDigitDual::showReadings(
     const int roundedFirst = roundToNearestTenDual(firstReading.sgv);
     const int tensFirst = (roundedFirst / 10) % 10;
 
+    // Clear content area first so stale external text is removed when API returns no content.
+    DisplayManager.clearMatrixPartNoUpdate(10, 0, MATRIX_WIDTH - 10, MATRIX_HEIGHT);
     // External API content is rendered first so local BG/trend visuals always stay visible.
     renderOneDigitExternalContent("onedigit_dual", firstReading, 10, MATRIX_WIDTH - 10, 6);
+    DisplayManager.clearMatrixPartNoUpdate(0, 0, 10, MATRIX_HEIGHT);
 
     DisplayManager.setFont(FONT_TYPE::SMALL);
     DisplayManager.setTextColor(
         dataIsOld ? BG_COLOR_OLD : (firstIsHigh ? COLOR_RED : getRoundedBgColorDual(roundedFirst)));
     const String displayFirst = firstIsHigh ? "H" : String(tensFirst);
-    DisplayManager.printText(0, 6, displayFirst.c_str(), TEXT_ALIGNMENT::LEFT, 2);
+    DisplayManager.printText(0, 6, displayFirst.c_str(), TEXT_ALIGNMENT::LEFT, 2, false);
     ODA::draw(3, firstReading.trend, dataIsOld);
 
     // Secondary reading: 1px gap at x=4, digit at x=5, arrow at x=8
@@ -60,7 +63,7 @@ void BGDisplayFaceOneDigitDual::showReadings(
             secondIsOld ? BG_COLOR_OLD
                         : (secondIsHigh ? COLOR_RED : getRoundedBgColorDual(roundedSecond)));
         const String displaySecond = secondIsHigh ? "H" : String(tensSecond);
-        DisplayManager.printText(5, 6, displaySecond.c_str(), TEXT_ALIGNMENT::LEFT, 2);
+        DisplayManager.printText(5, 6, displaySecond.c_str(), TEXT_ALIGNMENT::LEFT, 2, false);
         ODA::draw(8, secondReading.trend, secondIsOld);
     }
 

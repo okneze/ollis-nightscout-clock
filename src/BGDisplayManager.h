@@ -97,6 +97,7 @@ public:
 
 private:
     unsigned long long lastRefreshEpoch;
+    unsigned long lastScrollRenderMs = 0;
 };
 
 extern BGDisplayManager_& bgDisplayManager;

@@ -34,14 +34,17 @@ void BGDisplayFaceOneDigit::showReadings(
     const int roundedSgv = roundToNearestTen(lastReading.sgv);
     const int tensDigit = (roundedSgv / 10) % 10;
 
+    // Clear content area first so stale external text is removed when API returns no content.
+    DisplayManager.clearMatrixPartNoUpdate(5, 0, MATRIX_WIDTH - 5, MATRIX_HEIGHT);
     // External API content is rendered first so local BG/trend visuals always stay visible.
     renderOneDigitExternalContent("onedigit", lastReading, 5, MATRIX_WIDTH - 5, 6);
+    DisplayManager.clearMatrixPartNoUpdate(0, 0, 5, MATRIX_HEIGHT);
 
     DisplayManager.setFont(FONT_TYPE::SMALL);
     DisplayManager.setTextColor(
         dataIsOld ? BG_COLOR_OLD : (isHigh ? COLOR_RED : getRoundedBgColor(roundedSgv)));
     const String displayText = isHigh ? "H" : String(tensDigit);
-    DisplayManager.printText(0, 6, displayText.c_str(), TEXT_ALIGNMENT::LEFT, 2);
+    DisplayManager.printText(0, 6, displayText.c_str(), TEXT_ALIGNMENT::LEFT, 2, false);
 
     // Draw arrow immediately after the 3px-wide digit, with no extra spacing.
     ODA::draw(3, lastReading.trend, dataIsOld);
