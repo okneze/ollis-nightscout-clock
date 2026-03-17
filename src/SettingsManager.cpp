@@ -197,6 +197,7 @@ bool SettingsManager_::loadSettingsFromFile() {
     settings.librelinkup_patient_id_secondary = (*doc)["librelinkup_patient_id_secondary"].as<String>();
 
     settings.nightscout_url = (*doc)["nightscout_url"].as<String>();
+    settings.onedigit_external_api_url = (*doc)["onedigit_external_api_url"] | "";
     settings.nightscout_api_key = (*doc)["api_secret"].as<String>();
     settings.nightscout_simplified_api = (*doc)["nightscout_simplified_api"].as<bool>();
     settings.nightscout_url_secondary = (*doc)["nightscout_url_secondary"].as<String>();
@@ -306,6 +307,7 @@ bool SettingsManager_::saveSettingsToFile() {
     (*doc)["librelinkup_patient_id_secondary"] = settings.librelinkup_patient_id_secondary;
 
     (*doc)["nightscout_url"] = settings.nightscout_url;
+    (*doc)["onedigit_external_api_url"] = settings.onedigit_external_api_url;
     (*doc)["api_secret"] = settings.nightscout_api_key;
     (*doc)["nightscout_simplified_api"] = settings.nightscout_simplified_api;
     (*doc)["nightscout_url_secondary"] = settings.nightscout_url_secondary;

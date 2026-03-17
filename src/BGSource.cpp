@@ -6,6 +6,8 @@ unsigned long lastCallAttemptMills = 0;
 
 void BGSource::setup() {
     client = new HTTPClient();
+    // Reusing TLS connections can keep large buffers alive and starve other API calls.
+    client->setReuse(false);
     wifiSecureClient = new WiFiClientSecure();
     wifiSecureClient->setInsecure();
     status = "initialized";

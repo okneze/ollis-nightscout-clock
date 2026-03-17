@@ -142,10 +142,8 @@ std::list<GlucoseReading> BGSourceDexcom::retrieveReadings(
             DEBUG_PRINTF(
                 "Error deserializing dexcom response: %s\nFailed on string: %s\n", error.c_str(),
                 responseContent.c_str());
-            if (!firstConnectionSuccess) {
-                status = "invalid_response";
-                DisplayManager.showFatalError(String("Invalid Dexcom Share response: ") + error.c_str());
-            }
+            status = "invalid_response";
+            handleFailedAttempt();
 
             doc.clear();
             return readings;
@@ -205,11 +203,8 @@ std::list<GlucoseReading> BGSourceDexcom::retrieveReadings(
         }
         if (!firstConnectionSuccess) {
             status = "connection_error";
-            DisplayManager.showFatalError(String("Error connecting to Dexcom server: ") + responseCode);
         }
-        if (responseCode == -1) {
-            handleFailedAttempt();
-        }
+        handleFailedAttempt();
         return readings;
     }
 
@@ -264,15 +259,15 @@ String BGSourceDexcom::getAccountId(
             auto errorResponseString = client->getString();
             if (errorResponseString.indexOf("AccountPasswordInvalid") != -1) {
                 status = "invalid_credentials";
-                DisplayManager.showFatalError(
-                    "Invalid Dexcom username/email or password. Go to http://" +
-                    ServerManager.myIP.toString() + "/ to fix.");
+                client->end();
+                return "";
             }
         }
         if (!firstConnectionSuccess) {
             status = "connection_error";
-            DisplayManager.showFatalError(String("Error connecting to Dexcom server: ") + responseCode);
         }
+
+        handleFailedAttempt();
 
         client->end();
         return "";
@@ -339,8 +334,9 @@ String BGSourceDexcom::getSessionId(
         DEBUG_PRINTF("Error getting session id %d\n", responseCode);
         if (!firstConnectionSuccess) {
             status = "connection_error";
-            DisplayManager.showFatalError(String("Error connecting to Dexcom server: ") + responseCode);
         }
+
+        handleFailedAttempt();
 
         client->end();
         return "";

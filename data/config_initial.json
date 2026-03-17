@@ -16,6 +16,7 @@
     "dexcom_password_secondary": "",
     "dexcom_server_secondary": "",
     "nightscout_url": "",
+    "onedigit_external_api_url": "",
     "nightscout_simplified_api": false,
     "api_secret": "",
     "nightscout_url_secondary": "",

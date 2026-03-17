@@ -5,6 +5,7 @@
 #include "BGSource.h"
 #include "BGSourceManager.h"
 #include "DisplayManager.h"
+#include "OneDigitExternalContent.h"
 #include "ServerManager.h"
 #include "SettingsManager.h"
 #include "globals.h"
@@ -86,15 +87,36 @@ void BGDisplayManager_::maybeRrefreshScreen(bool force) {
 
     auto lastReading = bgDisplayManager.getLastDisplayedGlucoseReading();
 
+    auto refreshExternalOneDigitCache = [this, currentEpoch](const std::list<GlucoseReading>& readings) {
+        GlucoseReading primaryReading;
+        if (readings.empty()) {
+            primaryReading.sgv = 0;
+            primaryReading.trend = BG_TREND::NONE;
+            primaryReading.epoch = currentEpoch;
+        } else {
+            primaryReading = readings.back();
+        }
+
+        if (currentFaceIndex == 7) {
+            refreshOneDigitExternalContentCache("onedigit", primaryReading, 5, MATRIX_WIDTH - 5, 6);
+        } else if (currentFaceIndex == 8) {
+            refreshOneDigitExternalContentCache(
+                "onedigit_dual", primaryReading, 10, MATRIX_WIDTH - 10, 6);
+        }
+    };
+
     if (bgSourceManager.hasNewData(lastReading == NULL ? 0 : lastReading->epoch)) {
         DEBUG_PRINTLN("We have new data");
-        bgDisplayManager.showData(bgSourceManager.getInstance().getGlucoseData());
+        auto glucoseData = bgSourceManager.getInstance().getGlucoseData();
+        refreshExternalOneDigitCache(glucoseData);
+        bgDisplayManager.showData(glucoseData);
         lastRefreshEpoch = currentEpoch;
     } else {
         // We refresh the display every minue trying to match the exact :00 second
         if (force || timeInfo.tm_sec == 0 && currentEpoch > lastRefreshEpoch ||
             currentEpoch - lastRefreshEpoch > 60) {
             lastRefreshEpoch = currentEpoch;
+            refreshExternalOneDigitCache(displayedReadings);
             if (displayedReadings.size() > 0) {
                 bool dataIsOld = displayedReadings.back().getSecondsAgo() >
                                  60 * SettingsManager.settings.bg_data_too_old_threshold_minutes;

@@ -3,6 +3,7 @@
 #include "BGDisplayManager.h"
 #include "BGSourceManager.h"
 #include "OneDigitArrows.h"
+#include "OneDigitExternalContent.h"
 #include "globals.h"
 
 namespace {
@@ -34,6 +35,9 @@ void BGDisplayFaceOneDigitDual::showReadings(
     const bool firstIsHigh = firstReading.sgv >= 400;
     const int roundedFirst = roundToNearestTenDual(firstReading.sgv);
     const int tensFirst = (roundedFirst / 10) % 10;
+
+    // External API content is rendered first so local BG/trend visuals always stay visible.
+    renderOneDigitExternalContent("onedigit_dual", firstReading, 10, MATRIX_WIDTH - 10, 6);
 
     DisplayManager.setFont(FONT_TYPE::SMALL);
     DisplayManager.setTextColor(

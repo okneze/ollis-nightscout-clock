@@ -36,6 +36,7 @@
         not_empty: /^.{1,}$/,
         custom_nodatatimer: /^(?:[6-9]|[1-5][0-9]|60)?$/,
         web_auth_password: /^.{8,64}$/,
+        onedigit_external_api_url: /(^$)|(^https?:\/\/[^\s]+$)/,
 
     };
 
@@ -359,6 +360,7 @@
 
         addFocusOutValidation('clock_timezone');
         addFocusOutValidation('time_format');
+        addFocusOutValidation('onedigit_external_api_url');
 
         addFocusOutValidation('custom_nodatatimer');
 
@@ -414,6 +416,8 @@
         console.log("Validated timezone, result: " + allValid);
         allValid &= validate($('#time_format'), patterns.time_format);
         console.log("Validated time format, result: " + allValid);
+        allValid &= validate($('#onedigit_external_api_url'), patterns.onedigit_external_api_url);
+        console.log("Validated OneDigit external API URL, result: " + allValid);
         allValid &= validateAlarms();
         console.log("Validated alarms, result: " + allValid);
         allValid &= validate($('#custom_nodatatimer'), patterns.custom_nodatatimer);
@@ -890,6 +894,7 @@
         //Glucose source
         json['data_source'] = $('#glucose_source').val();
         json['data_source_secondary'] = $('#glucose_source_secondary').val();
+        json['onedigit_external_api_url'] = ($('#onedigit_external_api_url').val() || "").trim();
 
         //Dexcom
         json['dexcom_server'] = $('#dexcom_server').val();
@@ -1243,6 +1248,7 @@
         $('#glucose_source').trigger('change');
         $('#glucose_source_secondary').val(json['data_source_secondary'] || 'no_source');
         $('#glucose_source_secondary').trigger('change');
+        $('#onedigit_external_api_url').val(json['onedigit_external_api_url'] || '');
 
         //Dexcom
         $('#dexcom_server').val(json['dexcom_server']);

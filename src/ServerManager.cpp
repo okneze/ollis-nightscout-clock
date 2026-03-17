@@ -9,6 +9,7 @@
 
 #include "BGSourceManager.h"
 #include "DisplayManager.h"
+#include "OneDigitExternalContent.h"
 #include "PeripheryManager.h"
 #include "SettingsManager.h"
 #include "globals.h"
@@ -513,6 +514,10 @@ void ServerManager_::setupWebServer(IPAddress ip) {
         }
         jsonResponse += "}";
         request->send(200, "application/json", jsonResponse);
+    });
+
+    ws->on("/api/onedigit/status", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        request->send(200, "application/json", getOneDigitExternalContentStatusJson());
     });
 
     ws->on("/config.json", HTTP_GET, [this](AsyncWebServerRequest* request) {
