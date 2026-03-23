@@ -46,6 +46,7 @@ String lastConnectHost = "";
 String lastConnectIp = "";
 String lastRequestHostHeader = "";
 constexpr bool kDisableExternalApiFetchForStability = false;
+constexpr uint32_t kMinHeapForExternalApi = 25000;
 
 unsigned long computeRetryDelayMs(int failures) {
     if (failures >= 3) {
@@ -267,6 +268,19 @@ bool decodeHexFrame(const String& hex, int expectedBytes, std::vector<uint8_t>& 
     return true;
 }
 
+String normalizeTextForDisplay(const String& input) {
+    String output = input;
+    // UTF-8 umlauts and sharp-s for ASCII-only bitmap fonts.
+    output.replace("\xC3\x84", "Ae");  // Ä
+    output.replace("\xC3\x96", "Oe");  // Ö
+    output.replace("\xC3\x9C", "Ue");  // Ü
+    output.replace("\xC3\xA4", "ae");  // ä
+    output.replace("\xC3\xB6", "oe");  // ö
+    output.replace("\xC3\xBC", "ue");  // ü
+    output.replace("\xC3\x9F", "ss");  // ß
+    return output;
+}
+
 bool textFits(const String& text, int availableWidthPx) {
     DisplayManager.setFont(FONT_TYPE::SMALL);
     const int widthPx = static_cast<int>(ceil(DisplayManager.getTextWidth(text.c_str(), 2)));
@@ -288,7 +302,7 @@ TEXT_ALIGNMENT parseAlign(const char* align) {
 }
 
 void setFallback(CachedContent& cache, JsonObject fallbackObj, bool enableScroll) {
-    String fallbackText = fallbackObj["text"] | "--";
+    String fallbackText = normalizeTextForDisplay(fallbackObj["text"] | "--");
     if (isPlaceholderText(fallbackText)) {
         cache.available = false;
         cache.selectedIsBitmap = false;
@@ -529,8 +543,9 @@ bool updateCacheFromApi(
         return false;
     }
 
-    if (ESP.getFreeHeap() < 50000) {
-        lastError = "low_heap_" + String(ESP.getFreeHeap());
+    const uint32_t freeHeap = ESP.getFreeHeap();
+    if (freeHeap < kMinHeapForExternalApi) {
+        lastError = "low_heap_" + String(freeHeap) + "_min_" + String(kMinHeapForExternalApi);
         return false;
     }
 
@@ -561,11 +576,7 @@ bool updateCacheFromApi(
     uint16_t connectPort = port;
     String connectPath = pathWithQuery;
     String connectIp = "";
-    if (isHttps && host == "ulanziapi.robotsknowbest.com") {
-        // Connect directly to CDN edge IP to avoid DNS/hostname connect issues on device.
-        connectHost = "151.101.2.15";
-        connectIp = connectHost;
-    }
+    // Keep hostname for HTTPS so TLS SNI/certificate validation on CDN works reliably.
 
     lastConnectHost = connectHost;
     lastConnectIp = connectIp;
@@ -653,7 +664,7 @@ bool updateCacheFromApi(
             type.toLowerCase();
 
             if (type == "text") {
-                String text = candidateObj["text"] | "";
+                String text = normalizeTextForDisplay(candidateObj["text"] | "");
                 if (text.length() == 0) {
                     continue;
                 }
@@ -821,7 +832,7 @@ bool updateCacheFromApi(
         type.toLowerCase();
 
         if (type == "text") {
-            String text = candidateObj["text"] | "";
+            String text = normalizeTextForDisplay(candidateObj["text"] | "");
             if (isPlaceholderText(text)) {
                 continue;
             }
@@ -1032,6 +1043,8 @@ String getOneDigitExternalContentStatusJson() {
     doc["lastSuccessMs"] = lastSuccessMs;
     doc["lastHttpCode"] = lastHttpCode;
     doc["lastError"] = lastError;
+    doc["freeHeap"] = ESP.getFreeHeap();
+    doc["minHeapForExternalApi"] = kMinHeapForExternalApi;
     doc["consecutiveFailures"] = consecutiveFailures;
     doc["nextRetryInMs"] = nextRetryAfterMs > millis() ? nextRetryAfterMs - millis() : 0;
     doc["cacheOneDigitAvailable"] = oneDigitCache.available;

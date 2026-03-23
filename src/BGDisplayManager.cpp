@@ -97,9 +97,15 @@ void BGDisplayManager_::maybeRrefreshScreen(bool force) {
             primaryReading = readings.back();
         }
 
-        if (currentFaceIndex == 7) {
+        int targetFace = currentFaceIndex;
+        if (targetFace != 7 && targetFace != 8) {
+            targetFace = SettingsManager.settings.default_clockface;
+        }
+
+        if (targetFace == 7) {
             refreshOneDigitExternalContentCache("onedigit", primaryReading, 5, MATRIX_WIDTH - 5, 6);
-        } else if (currentFaceIndex == 8) {
+        } else {
+            // Default to dual view request so API updates continue even when another face is active.
             refreshOneDigitExternalContentCache(
                 "onedigit_dual", primaryReading, 10, MATRIX_WIDTH - 10, 6);
         }
