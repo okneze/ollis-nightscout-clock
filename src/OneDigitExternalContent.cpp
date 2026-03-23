@@ -508,6 +508,17 @@ bool updateCacheFromApi(
     CachedContent& cache, const char* view, const GlucoseReading& reading, uint8_t contentStartX,
     uint8_t contentWidth, uint8_t contentHeight) {
     const unsigned long nowMs = millis();
+
+    // Self-healing: if we have consecutive failures but haven't even tried in > 5 min
+    // (e.g. stuck in bad TLS state), reset and force a fresh attempt.
+    if (consecutiveFailures > 0 && lastAttemptMs > 0 && (long)(nowMs - lastAttemptMs) > 300000L &&
+        WiFi.status() == WL_CONNECTED) {
+        consecutiveFailures = 0;
+        nextRetryAfterMs = 0;
+        oneDigitSecureClient.stop();
+        lastError = "auto_reset_after_inactivity";
+    }
+
     if ((long)(nowMs - nextRetryAfterMs) < 0) {
         lastError = "backoff_active";
         return false;
@@ -538,7 +549,7 @@ bool updateCacheFromApi(
     if (!parseEndpointUrl(endpoint, isHttps, host, port, pathWithQuery)) {
         lastError = "invalid_endpoint";
         consecutiveFailures++;
-        nextRetryAfterMs = millis() + (consecutiveFailures >= 3 ? 300000UL : 60000UL);
+        nextRetryAfterMs = millis() + computeRetryDelayMs(consecutiveFailures);
         return false;
     }
     lastEndpoint = endpoint;
@@ -561,6 +572,8 @@ bool updateCacheFromApi(
     lastRequestHostHeader = host;
 
     if (isHttps && connectHost != host) {
+        // Always stop + reinitialise to avoid stale TLS state across calls.
+        oneDigitSecureClient.stop();
         oneDigitSecureClient.setInsecure();
 
         IPAddress ip;
