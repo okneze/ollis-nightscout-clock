@@ -35,10 +35,10 @@ void BGDisplayFaceOneDigit::showReadings(
     const int tensDigit = (roundedSgv / 10) % 10;
 
     // Clear content area first so stale external text is removed when API returns no content.
-    DisplayManager.clearMatrixPartNoUpdate(5, 0, MATRIX_WIDTH - 5, MATRIX_HEIGHT);
+    DisplayManager.clearMatrixPartNoUpdate(6, 0, MATRIX_WIDTH - 6, MATRIX_HEIGHT);
     // External API content is rendered first so local BG/trend visuals always stay visible.
-    renderOneDigitExternalContent("onedigit", lastReading, 5, MATRIX_WIDTH - 5, 6);
-    DisplayManager.clearMatrixPartNoUpdate(0, 0, 5, MATRIX_HEIGHT);
+    renderOneDigitExternalContent("onedigit", lastReading, 6, MATRIX_WIDTH - 6, 6);
+    DisplayManager.clearMatrixPartNoUpdate(0, 0, 6, MATRIX_HEIGHT);
 
     DisplayManager.setFont(FONT_TYPE::SMALL);
     DisplayManager.setTextColor(
@@ -48,6 +48,7 @@ void BGDisplayFaceOneDigit::showReadings(
 
     // Draw arrow immediately after the 3px-wide digit, with no extra spacing.
     ODA::draw(3, lastReading.trend, dataIsOld);
+    renderOneDigitBgtir1("onedigit", 4, 1);
 
     BGDisplayManager_::drawTimerBlocks(lastReading, MATRIX_WIDTH, 0, 7);
 }

@@ -17,9 +17,15 @@ namespace {
 struct CachedContent {
     bool available = false;
     bool selectedIsBitmap = false;
+    bool selectedIsRgbBitmap = false;
+    bool hasBgtir1 = false;
+    uint16_t bgtir1[5] = {0};
+    bool hasBgtir2 = false;
+    uint16_t bgtir2[5] = {0};
     bool scrollEnabled = false;
     String selectedText;
     String selectedFrameHex;
+    std::vector<uint16_t> selectedRgbBitmapPixels;
     uint16_t selectedColor = COLOR_WHITE;
     int selectedBitmapWidth = 0;
     int selectedBitmapHeight = 0;
@@ -306,6 +312,8 @@ void setFallback(CachedContent& cache, JsonObject fallbackObj, bool enableScroll
     if (isPlaceholderText(fallbackText)) {
         cache.available = false;
         cache.selectedIsBitmap = false;
+        cache.selectedIsRgbBitmap = false;
+        cache.selectedRgbBitmapPixels.clear();
         cache.scrollEnabled = false;
         cache.selectedText = "";
         cache.selectedColor = COLOR_WHITE;
@@ -317,6 +325,8 @@ void setFallback(CachedContent& cache, JsonObject fallbackObj, bool enableScroll
 
     cache.available = true;
     cache.selectedIsBitmap = false;
+    cache.selectedIsRgbBitmap = false;
+    cache.selectedRgbBitmapPixels.clear();
     cache.scrollEnabled = enableScroll;
     cache.selectedText = fallbackText;
     cache.selectedColor = hexToColor565(fallbackObj["color"] | "#FFFFFF");
@@ -347,6 +357,7 @@ bool buildRequestBody(
     capabilities["canScroll"] = true;
     capabilities["canAnimate"] = true;
     capabilities["supportsBitmap"] = true;
+    capabilities["supportsRgbBitmap"] = true;
     capabilities["maxFps"] = 10;
 
     return serializeJson(requestDoc, out) > 0;
@@ -648,7 +659,28 @@ bool updateCacheFromApi(
         cache.selectedBitmapWidth = 0;
         cache.selectedBitmapHeight = 0;
         cache.selectedIsBitmap = false;
+        cache.selectedIsRgbBitmap = false;
+        cache.selectedRgbBitmapPixels.clear();
+        cache.hasBgtir1 = false;
+        cache.hasBgtir2 = false;
         cache.scrollEnabled = false;
+        cache.selectedAlign = align;
+
+        JsonArray bgtir1Arr = responseDoc["bgtir1"].as<JsonArray>();
+        if (bgtir1Arr.size() == 5) {
+            cache.hasBgtir1 = true;
+            for (int i = 0; i < 5; i++) {
+                cache.bgtir1[i] = hexToColor565(bgtir1Arr[i].as<String>());
+            }
+        }
+
+        JsonArray bgtir2Arr = responseDoc["bgtir2"].as<JsonArray>();
+        if (bgtir2Arr.size() == 5) {
+            cache.hasBgtir2 = true;
+            for (int i = 0; i < 5; i++) {
+                cache.bgtir2[i] = hexToColor565(bgtir2Arr[i].as<String>());
+            }
+        }
         cache.selectedAlign = align;
 
         String firstTextCandidate = "";
@@ -686,6 +718,34 @@ bool updateCacheFromApi(
                     return true;
                 }
                 continue;
+            }
+
+            if (type == "rgb_bitmap") {
+                int widthPx = candidateObj["widthPx"] | 0;
+                int heightPx = candidateObj["heightPx"] | 0;
+                JsonArray pixels = candidateObj["pixels"].as<JsonArray>();
+                if (pixels.isNull() || pixels.size() == 0 || widthPx <= 0 || heightPx <= 0) {
+                    continue;
+                }
+                if (pixels.size() != static_cast<size_t>(widthPx * heightPx)) {
+                    continue;
+                }
+                if (widthPx <= contentWidth && heightPx <= contentHeight) {
+                    cache.available = true;
+                    cache.selectedIsBitmap = false;
+                    cache.selectedIsRgbBitmap = true;
+                    cache.selectedBitmapWidth = widthPx;
+                    cache.selectedBitmapHeight = heightPx;
+                    cache.selectedRgbBitmapPixels.clear();
+                    cache.selectedRgbBitmapPixels.reserve(widthPx * heightPx);
+                    for (JsonVariant pixelHex : pixels) {
+                        cache.selectedRgbBitmapPixels.push_back(hexToColor565(pixelHex.as<String>()));
+                    }
+                    cache.scrollEnabled = false;
+                    lastSuccessMs = millis();
+                    lastError = "ok";
+                    return true;
+                }
             }
 
             if (type == "bitmap") {
@@ -816,7 +876,28 @@ bool updateCacheFromApi(
     cache.selectedBitmapWidth = 0;
     cache.selectedBitmapHeight = 0;
     cache.selectedIsBitmap = false;
+    cache.selectedIsRgbBitmap = false;
+    cache.selectedRgbBitmapPixels.clear();
+    cache.hasBgtir1 = false;
+    cache.hasBgtir2 = false;
     cache.scrollEnabled = false;
+    cache.selectedAlign = align;
+
+    JsonArray bgtir1Arr = responseDoc["bgtir1"].as<JsonArray>();
+    if (bgtir1Arr.size() == 5) {
+        cache.hasBgtir1 = true;
+        for (int i = 0; i < 5; i++) {
+            cache.bgtir1[i] = hexToColor565(bgtir1Arr[i].as<String>());
+        }
+    }
+
+    JsonArray bgtir2Arr = responseDoc["bgtir2"].as<JsonArray>();
+    if (bgtir2Arr.size() == 5) {
+        cache.hasBgtir2 = true;
+        for (int i = 0; i < 5; i++) {
+            cache.bgtir2[i] = hexToColor565(bgtir2Arr[i].as<String>());
+        }
+    }
     cache.selectedAlign = align;
 
     String firstTextCandidate = "";
@@ -854,6 +935,34 @@ bool updateCacheFromApi(
                 return true;
             }
             continue;
+        }
+
+        if (type == "rgb_bitmap") {
+            int widthPx = candidateObj["widthPx"] | 0;
+            int heightPx = candidateObj["heightPx"] | 0;
+            JsonArray pixels = candidateObj["pixels"].as<JsonArray>();
+            if (pixels.isNull() || pixels.size() == 0 || widthPx <= 0 || heightPx <= 0) {
+                continue;
+            }
+            if (pixels.size() != static_cast<size_t>(widthPx * heightPx)) {
+                continue;
+            }
+            if (widthPx <= contentWidth && heightPx <= contentHeight) {
+                cache.available = true;
+                cache.selectedIsBitmap = false;
+                cache.selectedIsRgbBitmap = true;
+                cache.selectedBitmapWidth = widthPx;
+                cache.selectedBitmapHeight = heightPx;
+                cache.selectedRgbBitmapPixels.clear();
+                cache.selectedRgbBitmapPixels.reserve(widthPx * heightPx);
+                for (JsonVariant pixelHex : pixels) {
+                    cache.selectedRgbBitmapPixels.push_back(hexToColor565(pixelHex.as<String>()));
+                }
+                cache.scrollEnabled = false;
+                lastSuccessMs = millis();
+                lastError = "ok";
+                return true;
+            }
         }
 
         if (type == "bitmap") {
@@ -976,7 +1085,54 @@ void renderBitmapCandidate(
     DisplayManager.drawBitmap(
         x, y, bitmap.data(), cache.selectedBitmapWidth, cache.selectedBitmapHeight, cache.selectedColor);
 }
+
+void renderRgbBitmapCandidate(
+    const CachedContent& cache, uint8_t contentStartX, uint8_t contentWidth, uint8_t contentHeight) {
+    int xStart = contentStartX + (contentWidth - cache.selectedBitmapWidth) / 2;
+    int yStart = (contentHeight - cache.selectedBitmapHeight) / 2;
+    if (yStart < 0) {
+        yStart = 0;
+    }
+
+    size_t idx = 0;
+    for (int y = 0; y < cache.selectedBitmapHeight; ++y) {
+        for (int x = 0; x < cache.selectedBitmapWidth; ++x) {
+            if (idx < cache.selectedRgbBitmapPixels.size()) {
+                uint16_t color = cache.selectedRgbBitmapPixels[idx++];
+                if (color != 0x0000) {
+                    DisplayManager.drawPixel(xStart + x, yStart + y, color, false);
+                }
+            }
+        }
+    }
+}
 }  // namespace
+
+bool renderOneDigitBgtir1(const char* view, int16_t x, int16_t y) {
+    const CachedContent& cache = getCacheForView(view);
+    if (!cache.hasBgtir1) {
+        return false;
+    }
+    for (int i = 0; i < 5; i++) {
+        if (cache.bgtir1[i] != 0x0000) {
+            DisplayManager.drawPixel(x, y + i, cache.bgtir1[i], false);
+        }
+    }
+    return true;
+}
+
+bool renderOneDigitBgtir2(const char* view, int16_t x, int16_t y) {
+    const CachedContent& cache = getCacheForView(view);
+    if (!cache.hasBgtir2) {
+        return false;
+    }
+    for (int i = 0; i < 5; i++) {
+        if (cache.bgtir2[i] != 0x0000) {
+            DisplayManager.drawPixel(x, y + i, cache.bgtir2[i], false);
+        }
+    }
+    return true;
+}
 
 bool renderOneDigitExternalContent(
     const char* view, const GlucoseReading& primaryReading, uint8_t contentStartX, uint8_t contentWidth,
@@ -992,7 +1148,9 @@ bool renderOneDigitExternalContent(
         return false;
     }
 
-    if (cache.selectedIsBitmap) {
+    if (cache.selectedIsRgbBitmap) {
+        renderRgbBitmapCandidate(cache, contentStartX, contentWidth, contentHeight);
+    } else if (cache.selectedIsBitmap) {
         renderBitmapCandidate(cache, contentStartX, contentWidth, contentHeight);
     } else {
         renderTextCandidate(cache, contentStartX, contentWidth, contentHeight);
