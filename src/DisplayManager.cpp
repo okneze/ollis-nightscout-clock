@@ -194,24 +194,24 @@ void DisplayManager_::drawDigitWithTrend(
         uint8_t bits = pgm_read_byte(&(currentFont.font.bitmap[offset + row]));
         int16_t screenY = y + glyph.yOffset + row;
 
-        bool drawOrange = false;
+        bool drawTrend = false;
         if (!dataIsOld) {
             if (trend == BG_TREND::DOUBLE_UP || trend == BG_TREND::RATE_OUT_OF_RANGE) {
-                drawOrange = (row == 0 || row == 1 || row == 2);
+                drawTrend = (row == 0 || row == 1 || row == 2);
             } else if (trend == BG_TREND::SINGLE_UP) {
-                drawOrange = (row == 0 || row == 1);
+                drawTrend = (row == 0 || row == 1);
             } else if (trend == BG_TREND::FORTY_FIVE_UP) {
-                drawOrange = (row == 0);
+                drawTrend = (row == 0);
             } else if (trend == BG_TREND::FORTY_FIVE_DOWN) {
-                drawOrange = (row == 4);
+                drawTrend = (row == 4);
             } else if (trend == BG_TREND::SINGLE_DOWN) {
-                drawOrange = (row == 3 || row == 4);
+                drawTrend = (row == 3 || row == 4);
             } else if (trend == BG_TREND::DOUBLE_DOWN) {
-                drawOrange = (row == 2 || row == 3 || row == 4);
+                drawTrend = (row == 2 || row == 3 || row == 4);
             }
         }
 
-        uint16_t pixelColor = drawOrange ? COLOR_ORANGE : baseColor;
+        uint16_t pixelColor = drawTrend ? COLOR_GRAY : baseColor;
 
         for (uint8_t col = 0; col < 8; col++) {
             if (bits & (0x80 >> col)) {
