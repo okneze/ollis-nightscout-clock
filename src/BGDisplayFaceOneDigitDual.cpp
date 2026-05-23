@@ -42,12 +42,9 @@ void BGDisplayFaceOneDigitDual::showReadings(
     renderOneDigitExternalContent("onedigit_dual", firstReading, 12, MATRIX_WIDTH - 12, 6);
     DisplayManager.clearMatrixPartNoUpdate(0, 0, 12, MATRIX_HEIGHT);
 
-    DisplayManager.setFont(FONT_TYPE::SMALL);
-    DisplayManager.setTextColor(
-        dataIsOld ? BG_COLOR_OLD : (firstIsHigh ? COLOR_RED : getRoundedBgColorDual(roundedFirst)));
     const String displayFirst = firstIsHigh ? "H" : String(tensFirst);
-    DisplayManager.printText(0, 6, displayFirst.c_str(), TEXT_ALIGNMENT::LEFT, 2, false);
-    ODA::draw(3, firstReading.trend, dataIsOld);
+    const uint16_t colorFirst = dataIsOld ? BG_COLOR_OLD : (firstIsHigh ? COLOR_RED : getRoundedBgColorDual(roundedFirst));
+    DisplayManager.drawDigitWithTrend(0, 6, displayFirst[0], colorFirst, firstReading.trend, dataIsOld, false);
     renderOneDigitBgtir1("onedigit_dual", 4, 1);
 
     // Secondary reading: 1px gap at x=5, digit at x=6, arrow at x=9
@@ -60,12 +57,9 @@ void BGDisplayFaceOneDigitDual::showReadings(
         const int roundedSecond = roundToNearestTenDual(secondReading.sgv);
         const int tensSecond = (roundedSecond / 10) % 10;
 
-        DisplayManager.setTextColor(
-            secondIsOld ? BG_COLOR_OLD
-                        : (secondIsHigh ? COLOR_RED : getRoundedBgColorDual(roundedSecond)));
         const String displaySecond = secondIsHigh ? "H" : String(tensSecond);
-        DisplayManager.printText(6, 6, displaySecond.c_str(), TEXT_ALIGNMENT::LEFT, 2, false);
-        ODA::draw(9, secondReading.trend, secondIsOld);
+        const uint16_t colorSecond = secondIsOld ? BG_COLOR_OLD : (secondIsHigh ? COLOR_RED : getRoundedBgColorDual(roundedSecond));
+        DisplayManager.drawDigitWithTrend(6, 6, displaySecond[0], colorSecond, secondReading.trend, secondIsOld, false);
         renderOneDigitBgtir2("onedigit_dual", 10, 1);
     }
 

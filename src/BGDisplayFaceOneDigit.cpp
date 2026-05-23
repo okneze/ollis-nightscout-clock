@@ -40,14 +40,9 @@ void BGDisplayFaceOneDigit::showReadings(
     renderOneDigitExternalContent("onedigit", lastReading, 6, MATRIX_WIDTH - 6, 6);
     DisplayManager.clearMatrixPartNoUpdate(0, 0, 6, MATRIX_HEIGHT);
 
-    DisplayManager.setFont(FONT_TYPE::SMALL);
-    DisplayManager.setTextColor(
-        dataIsOld ? BG_COLOR_OLD : (isHigh ? COLOR_RED : getRoundedBgColor(roundedSgv)));
     const String displayText = isHigh ? "H" : String(tensDigit);
-    DisplayManager.printText(0, 6, displayText.c_str(), TEXT_ALIGNMENT::LEFT, 2, false);
-
-    // Draw arrow immediately after the 3px-wide digit, with no extra spacing.
-    ODA::draw(3, lastReading.trend, dataIsOld);
+    const uint16_t baseColor = dataIsOld ? BG_COLOR_OLD : (isHigh ? COLOR_RED : getRoundedBgColor(roundedSgv));
+    DisplayManager.drawDigitWithTrend(0, 6, displayText[0], baseColor, lastReading.trend, dataIsOld, false);
     renderOneDigitBgtir1("onedigit", 4, 1);
 
     BGDisplayManager_::drawTimerBlocks(lastReading, MATRIX_WIDTH, 0, 7);
