@@ -23,9 +23,6 @@ public:
     void printText(
         int16_t x, int16_t y, const char* text, TEXT_ALIGNMENT alignment, byte textCase,
         bool updateMatrix = true);
-    void drawDigitWithTrend(
-        int16_t x, int16_t y, char c, uint16_t baseColor, BG_TREND trend, bool dataIsOld,
-        bool updateMatrix = true);
     void setTextColor(uint16_t color);
     void clearMatrix();
     void drawBitmap(int16_t x, int16_t y, const uint8_t bitmap[], int16_t w, int16_t h, uint16_t color);

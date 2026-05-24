@@ -37,17 +37,20 @@ void BGDisplayFaceOneDigitDual::showReadings(
     const int tensFirst = (roundedFirst / 10) % 10;
 
     // Clear content area first so stale external text is removed when API returns no content.
-    DisplayManager.clearMatrixPartNoUpdate(12, 0, MATRIX_WIDTH - 12, MATRIX_HEIGHT);
+    DisplayManager.clearMatrixPartNoUpdate(14, 0, MATRIX_WIDTH - 14, MATRIX_HEIGHT);
     // External API content is rendered first so local BG/trend visuals always stay visible.
-    renderOneDigitExternalContent("onedigit_dual", firstReading, 12, MATRIX_WIDTH - 12, 6);
-    DisplayManager.clearMatrixPartNoUpdate(0, 0, 12, MATRIX_HEIGHT);
+    renderOneDigitExternalContent("onedigit_dual", firstReading, 14, MATRIX_WIDTH - 14, 6);
+    DisplayManager.clearMatrixPartNoUpdate(0, 0, 14, MATRIX_HEIGHT);
 
+    DisplayManager.setFont(FONT_TYPE::SMALL);
+    DisplayManager.setTextColor(
+        dataIsOld ? BG_COLOR_OLD : (firstIsHigh ? COLOR_RED : getRoundedBgColorDual(roundedFirst)));
     const String displayFirst = firstIsHigh ? "H" : String(tensFirst);
-    const uint16_t colorFirst = dataIsOld ? BG_COLOR_OLD : (firstIsHigh ? COLOR_RED : getRoundedBgColorDual(roundedFirst));
-    DisplayManager.drawDigitWithTrend(0, 6, displayFirst[0], colorFirst, firstReading.trend, dataIsOld, false);
-    renderOneDigitBgtir1("onedigit_dual", 4, 1);
+    DisplayManager.printText(0, 6, displayFirst.c_str(), TEXT_ALIGNMENT::LEFT, 2, false);
+    ODA::draw(3, firstReading.trend, dataIsOld);
+    renderOneDigitBgtir1("onedigit_dual", 5, 1);
 
-    // Secondary reading: 1px gap at x=5, digit at x=6, arrow at x=9
+    // Secondary reading: 1px gap at x=6, digit at x=7, arrow at x=10
     const auto secondReadings = bgSourceManager.getSecondaryGlucoseData();
     if (!secondReadings.empty()) {
         const auto secondReading = secondReadings.back();
@@ -57,10 +60,13 @@ void BGDisplayFaceOneDigitDual::showReadings(
         const int roundedSecond = roundToNearestTenDual(secondReading.sgv);
         const int tensSecond = (roundedSecond / 10) % 10;
 
+        DisplayManager.setTextColor(
+            secondIsOld ? BG_COLOR_OLD
+                        : (secondIsHigh ? COLOR_RED : getRoundedBgColorDual(roundedSecond)));
         const String displaySecond = secondIsHigh ? "H" : String(tensSecond);
-        const uint16_t colorSecond = secondIsOld ? BG_COLOR_OLD : (secondIsHigh ? COLOR_RED : getRoundedBgColorDual(roundedSecond));
-        DisplayManager.drawDigitWithTrend(6, 6, displaySecond[0], colorSecond, secondReading.trend, secondIsOld, false);
-        renderOneDigitBgtir2("onedigit_dual", 10, 1);
+        DisplayManager.printText(7, 6, displaySecond.c_str(), TEXT_ALIGNMENT::LEFT, 2, false);
+        ODA::draw(10, secondReading.trend, secondIsOld);
+        renderOneDigitBgtir2("onedigit_dual", 12, 1);
     }
 
     BGDisplayManager_::drawTimerBlocks(firstReading, MATRIX_WIDTH, 0, 7);

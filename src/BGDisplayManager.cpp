@@ -103,11 +103,11 @@ void BGDisplayManager_::maybeRrefreshScreen(bool force) {
         }
 
         if (targetFace == 7) {
-            refreshOneDigitExternalContentCache("onedigit", primaryReading, 5, MATRIX_WIDTH - 5, 6);
+            refreshOneDigitExternalContentCache("onedigit", primaryReading, 7, MATRIX_WIDTH - 7, 6);
         } else {
             // Default to dual view request so API updates continue even when another face is active.
             refreshOneDigitExternalContentCache(
-                "onedigit_dual", primaryReading, 10, MATRIX_WIDTH - 10, 6);
+                "onedigit_dual", primaryReading, 14, MATRIX_WIDTH - 14, 6);
         }
     };
 

@@ -178,54 +178,6 @@ void DisplayManager_::printText(
     }
 }
 
-void DisplayManager_::drawDigitWithTrend(
-    int16_t x, int16_t y, char c, uint16_t baseColor, BG_TREND trend, bool dataIsOld,
-    bool updateMatrix) {
-    if (c < currentFont.font.first || c > currentFont.font.last) return;
-
-    GFXglyph glyph;
-    memcpy_P(&glyph, &currentFont.font.glyph[c - currentFont.font.first], sizeof(GFXglyph));
-
-    uint16_t offset = glyph.bitmapOffset;
-    uint8_t w = glyph.width;
-    uint8_t h = glyph.height;
-
-    for (uint8_t row = 0; row < h; row++) {
-        uint8_t bits = pgm_read_byte(&(currentFont.font.bitmap[offset + row]));
-        int16_t screenY = y + glyph.yOffset + row;
-
-        bool drawTrend = false;
-        if (!dataIsOld) {
-            if (trend == BG_TREND::DOUBLE_UP || trend == BG_TREND::RATE_OUT_OF_RANGE) {
-                drawTrend = (row == 0 || row == 1 || row == 2);
-            } else if (trend == BG_TREND::SINGLE_UP) {
-                drawTrend = (row == 0 || row == 1);
-            } else if (trend == BG_TREND::FORTY_FIVE_UP) {
-                drawTrend = (row == 0);
-            } else if (trend == BG_TREND::FORTY_FIVE_DOWN) {
-                drawTrend = (row == 4);
-            } else if (trend == BG_TREND::SINGLE_DOWN) {
-                drawTrend = (row == 3 || row == 4);
-            } else if (trend == BG_TREND::DOUBLE_DOWN) {
-                drawTrend = (row == 2 || row == 3 || row == 4);
-            }
-        }
-
-        uint16_t pixelColor = drawTrend ? COLOR_GRAY : baseColor;
-
-        for (uint8_t col = 0; col < 8; col++) {
-            if (bits & (0x80 >> col)) {
-                int16_t screenX = x + glyph.xOffset + col;
-                matrix->drawPixel(screenX, screenY, pixelColor);
-            }
-        }
-    }
-
-    if (updateMatrix) {
-        matrix->show();
-    }
-}
-
 void DisplayManager_::drawBitmap(
     int16_t x, int16_t y, const uint8_t bitmap[], int16_t w, int16_t h, uint16_t color) {
     matrix->setCursor(x, y);
