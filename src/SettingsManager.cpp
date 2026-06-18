@@ -362,7 +362,7 @@ bool SettingsManager_::saveSettingsToFile() {
     return true;
 }
 
-bool SettingsManager_::trySaveJsonAsSettings(JsonDocument doc) {
+bool SettingsManager_::trySaveJsonAsSettings(JsonVariantConst doc) {
     auto file = LittleFS.open(CONFIG_JSON, FILE_WRITE);
     if (!file) {
         DEBUG_PRINTLN("Failed to open config file for writing");
